@@ -40,11 +40,31 @@ type CommandConfig struct {
 var circuitSettings map[string]*Settings
 var settingsMutex *sync.RWMutex
 var log logger
+var defaultConfig *CommandConfig
 
 func init() {
 	circuitSettings = make(map[string]*Settings)
 	settingsMutex = &sync.RWMutex{}
 	log = DefaultLogger
+}
+
+func InitDefaultConfig(cfg CommandConfig) {
+	defaultConfig = &cfg
+	if defaultConfig.Timeout != 0 {
+		DefaultTimeout = defaultConfig.Timeout
+	}
+	if defaultConfig.MaxConcurrentRequests != 0 {
+		DefaultMaxConcurrent = defaultConfig.MaxConcurrentRequests
+	}
+	if defaultConfig.RequestVolumeThreshold != 0 {
+		DefaultVolumeThreshold = defaultConfig.RequestVolumeThreshold
+	}
+	if defaultConfig.SleepWindow != 0 {
+		DefaultSleepWindow = defaultConfig.SleepWindow
+	}
+	if defaultConfig.ErrorPercentThreshold != 0 {
+		DefaultErrorPercentThreshold = defaultConfig.ErrorPercentThreshold
+	}
 }
 
 // Configure applies settings for a set of circuits
@@ -99,7 +119,11 @@ func getSettings(name string) *Settings {
 	settingsMutex.RUnlock()
 
 	if !exists {
-		ConfigureCommand(name, CommandConfig{})
+		if defaultConfig != nil {
+			ConfigureCommand(name, *defaultConfig)
+		} else {
+			ConfigureCommand(name, CommandConfig{})
+		}
 		s = getSettings(name)
 	}
 
